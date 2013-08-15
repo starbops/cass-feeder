@@ -4,6 +4,15 @@ Parse them! Hash them! Eat them! Cassandra is hungry!
 
 ## Usage
 
+### setup.py
+ 
+```
+Usage: ./setup.py -H server -c keyspace columnfamily
+       ./setup.py -H server -d keyspace
+```
+
+### manage.py
+
 ```
 Usage: ./manager.py -H server -K keyspace -C columnfamily -i key column value
        ./manager.py -H server -K keyspace -C columnfamily -I path
