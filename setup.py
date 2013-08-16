@@ -13,7 +13,7 @@ def GetHandle(address):
 def BuildDB(handle, key_space, col_fam):
 	handle.create_keyspace(key_space, SIMPLE_STRATEGY, {'replication_factor': '1'})
 	print "[INFO] Keyspace '%s' was created." % key_space
-	sm.create_column_family(key_space, col_fam)
+	handle.create_column_family(key_space, col_fam)
 	print "[INFO] Column Family '%s' was created." % col_fam
 
 def DestroyDB(handle, key_space):
@@ -43,7 +43,8 @@ def main():
 					sys.exit(2)
 				try:
 					BuildDB(sm, a, args[0])
-				except pycassa.InvalidRequestException:
+				except pycassa.InvalidRequestException as err:
+					print "[ERROR] " + str(err) + "."
 					print "[ERROR] Failed to create keyspace or column family."
 				sm.close()
 				print "[INFO] Connection closed."
