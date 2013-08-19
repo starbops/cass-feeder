@@ -6,8 +6,6 @@ import dbus, getopt, hashlib, os, pycassa, re, sys
 from pycassa.pool import ConnectionPool
 from pycassa.columnfamily import ColumnFamily
 
-blklst = ['nicklistfifo', '/dev', 'run', '/var/lib/dpkg/info', '/run/vmblock-fuse', '/sys/kernel/debug/hid']
-
 ###
 # Return A Dictionary About UUID & Mount Point
 ####################################################################################
@@ -23,13 +21,9 @@ def uuidpth():
 		device_props = dbus.Interface(device_obj, dbus.PROPERTIES_IFACE)
 		mntpth = str(device_props.Get('org.freedesktop.UDisks.Device', "DeviceMountPaths"))
 		iduuid = str(device_props.Get('org.freedesktop.UDisks.Device', "IdUuid"))
-		try:
-			mntpthlst.append(re.search('.*\'(/.*?)\'.*', mntpth).group(1))
-		except AttributeError:
-			pass
-		else:
-			if iduuid != '':
-				uuidlst.append(iduuid)
+		try: mntpthlst.append(re.search('.*\'(/.*?)\'.*', mntpth).group(1))
+		except AttributeError: continue
+		if iduuid != '': uuidlst.append(iduuid)
 
 	return dict(zip(uuidlst, mntpthlst))
 
@@ -45,37 +39,61 @@ def InsertKey(handle, key, col_val_list):
 ###
 # MD5 & SHA1
 ####################################################################################
-def hashfile(afile, hasherlst, blocksize=65536):
-	print "[INFO] Hashing file '" + afile.name + "'.",
-	buf = afile.read(blocksize)
-	while len(buf) > 0:
-		print "\b.",
-		[hasher.update(buf) for hasher in hasherlst]
-		buf = afile.read(blocksize)
-	print
-	return ''.join([hasher.hexdigest() for hasher in hasherlst])
+def hashfile(file_name, hasherlst, file_size, blocksize=65536):
+	print "[INFO] Hashing file '" + file_name + "'."
+	if file_size == 0:
+		[hasher.update('') for hasher in hasherlst]
+	else:
+		with open(file_name, 'rb') as afile:
+			buf = afile.read(blocksize)
+			while len(buf) > 0:
+				[hasher.update(buf) for hasher in hasherlst]
+				buf = afile.read(blocksize)
+	return ''.join([hasher.hexdigest() for hasher in hasherlst]) + str(file_size)
 
 ###
 # Check If Current Directory Is In Blacklist
 ####################################################################################
-def inblacklist(curdrnm):
+def inblacklist(nm, blklst):
 	for blk in blklst:
-		if curdrnm.startswith(blk):
+		if nm.startswith(blk):
 			return True
 	return False
 
 ###
 # Insert Keys From A Given Point Recursively (UUID)
 ####################################################################################
-def ImportTree(h, devuuid, pth):
+def ImportTree(h, devuuid, pth, blklst=[]):
 	for drnm, sbdrnms, flnms in os.walk(pth):
 		print "[INFO] Entering '" + drnm + "'."
-		if inblacklist(drnm): continue
-		flnmlst = [os.path.abspath(os.path.join(drnm, flnm)) for flnm in set(flnms).difference(blklst)]
-		try: rsltlst = [(flnm, hashfile(open(flnm, 'rb'), [hashlib.md5(), hashlib.sha1()]) + str(os.path.getsize(flnm))) for flnm in flnmlst]
-		except (OSError, IOError) as err: print "[ERROR] " + str(err) + "."
-		else: [InsertKey(h, flnmabs, [devuuid, rslt]) for (flnmabs, rslt) in rsltlst]
-	print "[INFO] Job done."
+		flnmabslst = [os.path.abspath(os.path.join(drnm, flnm)) for flnm in flnms]
+		for flnmabs in flnmabslst:
+			if inblacklist(flnmabs, blklst): continue
+			else:
+				try:
+					hashstr = hashfile(flnmabs, [hashlib.md5(), hashlib.sha1()], os.path.getsize(flnmabs))
+					InsertKey(h, flnmabs, [devuuid, hashstr])
+				except Exception as err:
+					print "[ERROR] " + str(err) + "."
+	print "[INFO] Importation done."
+
+		#rsltlst = []
+		##if inblacklist(drnm): continue
+		#flnmlst = [os.path.abspath(os.path.join(drnm, flnm)) for flnm in flnms] #set(flnms).difference(blklst)]
+		##try: #rsltlst = [(flnm, hashfile(open(flnm, 'rb'), [hashlib.md5(), hashlib.sha1()]) + str(os.path.getsize(flnm))) for flnm in flnmlst]
+		#try:
+		#	rsltlst = [(flnm, hashfile(flnm, [hashlib.md5(), hashlib.sha1()], os.path.getsize(flnm))) for flnm in flnmlst]
+		#	#for flnm in flnmlst:
+		#	#	flsz = os.path.getsize(flnm)
+		#	#	if flsz == 0:
+		#	#		rsltlst.append((flnm, hashfile(None, [hashlib.md5(), hashlib.sha1()]) + str(flsz)))
+		#	#	else:
+		#	#		rsltlst.append((flnm, hashfile(open(flnm, 'rb'), [hashlib.md5(), hashlib.sha1()]) + str(flsz)))
+		#except (OSError, IOError) as err:
+		#	print "[ERROR] " + str(err) + "."
+		#	continue
+		#for (flnmabs, rslt) in rsltlst:
+		#	InsertKey(h, flnmabs, [devuuid, rslt])
 
 ###
 # Delete Whole Row Or Multiple Columns
@@ -89,7 +107,7 @@ def DeleteKey(handle, key, col):
 		print "[INFO] Remove '" + key + "'."
 
 ###
-# Return OrderedDick Of The Specified Key (Along With Column Name)
+# Return OrderedDict Of The Specified Key (Along With Column Name)
 ####################################################################################
 def GetKey(handle, key, col):
 	if len(col) != 0:
@@ -104,7 +122,7 @@ def GetKey(handle, key, col):
 ####################################################################################
 def ListInfo(handle, key_list):
 	if len(key_list) == 0:
-		result = dict(handle.get_range(column_count=1, filter_empty=False))
+		result = dict(handle.get_range(column_count=0, filter_empty=False))
 		print "Total", len(result), "row(s)."
 		#return result
 	else:
@@ -117,12 +135,11 @@ def ListInfo(handle, key_list):
 ####################################################################################
 def ComplexGet(handle, key_list, col_list):
 	if len(key_list) == 0:
-		result = dict(handle.get_range(columns=col_list))
-	elif len(col_list) == 0:
-		result = dict(handle.multiget(key_list))
+		result = dict(handle.get_range(columns=col_list)).keys()
+		for x in result: print x
 	else:
 		result = dict(handle.multiget(key_list, col_list))
-	print result
+		for x in result.values(): print x.items()[0][1]
 	return result
 
 ###
@@ -139,9 +156,9 @@ def connectserver(address, key_space, column_family):
 # Show Help Messages
 ####################################################################################
 def helpmsg():
-	print "Usage: ./manager.py -H server -K keyspace -C columnfamily -i key column value"
-	print "       ./manager.py -H server -K keyspace -C columnfamily -I path"
-	print "       ./manager.py -H server -K keyspace -C columnfamily -d key [column]"
-	print "       ./manager.py -H server -K keyspace -C columnfamily -l key [column]"
-	print "       ./manager.py -H server -K keyspace -C columnfamily -L [key]"
-	print "       ./manager.py -H server -K keyspace -C columnfamily -M [key_string] column_string"
+	print "Usage: ./manager.py -h server -k keyspace -c columnfamily -i key column value"
+	print "       ./manager.py -h server -k keyspace -c columnfamily -I path"
+	print "       ./manager.py -h server -k keyspace -c columnfamily -d key [column]"
+	print "       ./manager.py -h server -k keyspace -c columnfamily -l key [column]"
+	print "       ./manager.py -h server -k keyspace -c columnfamily -L [key]"
+	print "       ./manager.py -h server -k keyspace -c columnfamily -M [key_string] column_string"

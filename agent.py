@@ -6,7 +6,7 @@ from manager import *
 
 def main():
 	try:
-		opts, args = getopt.getopt(sys.argv[1:], "H:K:C:i:Id:l:LM")
+		opts, args = getopt.getopt(sys.argv[1:], "h:k:c:i:Id:l:LM")
 		if len(opts) != 4: raise getopt.GetoptError, "Choose one from below:"
 	except getopt.GetoptError as err: helpmsg()
 	else:
@@ -23,11 +23,14 @@ def main():
 				if a != '' and len(args) == 2: InsertKey(cf, a, args)
 				else: helpmsg()
 			elif o == '-I':
-				devinfo = uuidpth()
-				for key in devinfo:
-					[blklst.append(x) for x in devinfo.values() if x != devinfo[key]]
-					[blklst.remove(x) for x in devinfo.values() if x != devinfo[key]]
-					ImportTree(cf, key, devinfo[key])
+				if len(args) == 1:
+					ImportTree(cf, 'UUID', args[0])
+				else:
+					devinfo = uuidpth()
+					blklst = ['nicklistfifo', '/dev', '/run', '/var/lib/dpkg/info', '/sys/kernel/debug/hid']
+					for key in devinfo:
+						blklsttmp = [x for x in devinfo.values() if x != devinfo[key] if x != '/']
+						ImportTree(cf, key, devinfo[key], blklst + blklsttmp)
 			elif o == '-d':
 				if a != '': DeleteKey(cf, a, args)
 				else: helpmsg()

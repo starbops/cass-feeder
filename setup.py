@@ -21,12 +21,12 @@ def DestroyDB(handle, key_space):
 	print "[INFO] Keyspace '%s'was dropped." % key_space
 
 def HelpMsg():
-	print "Usage: ./setup.py -H server -c keyspace columnfamily"
-	print "       ./setup.py -H server -d keyspace"
+	print "Usage: ./setup.py -h server -C keyspace columnfamily"
+	print "       ./setup.py -h server -D keyspace"
 
 def main():
 	try:
-		opts, args = getopt.getopt(sys.argv[1:], "H:c:d:")
+		opts, args = getopt.getopt(sys.argv[1:], "h:C:D:")
 		if len(opts) != 2:
 			raise getopt.GetoptError, "Need at least one option."
 	except getopt.GetoptError:
@@ -34,7 +34,7 @@ def main():
 	else:
 		in_server = opts[0][1]
 		(o, a) = opts[1]
-		if o == '-c':
+		if o == '-C':
 			if a != '' and len(args) == 1:
 				try:
 					sm = GetHandle(in_server)
@@ -50,7 +50,7 @@ def main():
 				print "[INFO] Connection closed."
 			else:
 				HelpMsg()
-		elif o == '-d':
+		elif o == '-D':
 			if a != '':
 				try:
 					sm = GetHandle(in_server)
