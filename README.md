@@ -41,3 +41,14 @@ Usage: ./agent.py -h server -k keyspace -c columnfamily -i key column value
 - 給 key & column 查詢 value
 - 讀取裝置 UUID 功能
 - *除 UUID 外另增 column of network source*
+- download file
+
+## Table Structure
+
+|                   | Frontend     | Backend     |
+| ----------------- |:------------:|:-----------:|
+| **Keyspace**      | KS           | SECMAP      |
+| **Column Family** | CF           | SUMMARY     |
+| **Key**           | fullPathName | taskID      |
+| **Column Name**   | UUID         | content     |
+| **Column Value**  | fileHash     | fileContent |

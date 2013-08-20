@@ -2,9 +2,11 @@
 # -*- coding: utf-8 -*-
 # file: manager.py
 
-import dbus, getopt, hashlib, os, pycassa, re, sys
+import dbus, getopt, hashlib, os, pycassa, re, subprocess, sys
 from pycassa.pool import ConnectionPool
 from pycassa.columnfamily import ColumnFamily
+
+SECMAPSERVLST = ['192.168.100.103', '192.168.100.105', '192.168.100.107', '192.168.100.111']
 
 ###
 # Return A Dictionary About UUID & Mount Point
@@ -77,24 +79,6 @@ def ImportTree(h, devuuid, pth, blklst=[]):
 					print "[ERROR] " + str(err) + "."
 	print "[INFO] Importation done."
 
-		#rsltlst = []
-		##if inblacklist(drnm): continue
-		#flnmlst = [os.path.abspath(os.path.join(drnm, flnm)) for flnm in flnms] #set(flnms).difference(blklst)]
-		##try: #rsltlst = [(flnm, hashfile(open(flnm, 'rb'), [hashlib.md5(), hashlib.sha1()]) + str(os.path.getsize(flnm))) for flnm in flnmlst]
-		#try:
-		#	rsltlst = [(flnm, hashfile(flnm, [hashlib.md5(), hashlib.sha1()], os.path.getsize(flnm))) for flnm in flnmlst]
-		#	#for flnm in flnmlst:
-		#	#	flsz = os.path.getsize(flnm)
-		#	#	if flsz == 0:
-		#	#		rsltlst.append((flnm, hashfile(None, [hashlib.md5(), hashlib.sha1()]) + str(flsz)))
-		#	#	else:
-		#	#		rsltlst.append((flnm, hashfile(open(flnm, 'rb'), [hashlib.md5(), hashlib.sha1()]) + str(flsz)))
-		#except (OSError, IOError) as err:
-		#	print "[ERROR] " + str(err) + "."
-		#	continue
-		#for (flnmabs, rslt) in rsltlst:
-		#	InsertKey(h, flnmabs, [devuuid, rslt])
-
 ###
 # Delete Whole Row Or Multiple Columns
 ####################################################################################
@@ -105,24 +89,49 @@ def DeleteKey(handle, key, col):
 	else:
 		handle.remove(key);
 		print "[INFO] Remove '" + key + "'."
+
+###
+# Get File Content From Other Cassandra Servers
+####################################################################################
+def getfilecontent(taskid):
+	result = ""
+	try:
+		(p, c) = connectserver(SECMAPSERVLST, 'SECMAP', 'SUMMARY')
+	except Exception as err:
+		print "[ERROR] " + str(err) + "\n[ERROR] Connection aborted."
+	else:
+		try:
+			content = GetKey(c, taskid, ['content'], False)
+			result = content.values()[0]
+		except pycassa.NotFoundException as err:
+			print "[ERROR] " + str(err) + "."
+		p.dispose()
+	return result
+
 ###
 # Write Content Into File
 ####################################################################################
 def setfile(file_name, content):
 	try: os.makedirs(os.getcwd() + os.path.dirname(file_name))
-	except OSError as err: pass
-	with open(os.getcwd() + file_name, "w") as f:
+	except OSError as err:
+		print "[ERROR] " + str(err) + "."
+	full_file_name = os.getcwd() + file_name
+	with open(full_file_name, "w") as f:
 		f.write(content)
+	if re.match(r".*DLL.*", subprocess.check_output(['file', full_file_name])):
+		new_file_name = full_file_name + ".dll"
+	else:
+		new_file_name = full_file_name + ".exe"
+	os.system("mv " + full_file_name + " " + new_file_name)
 
 ###
 # Return OrderedDict Of The Specified Key (Along With Column Name)
 ####################################################################################
-def GetKey(handle, key, col):
-	if len(col) != 0:
-		result = handle.get(key, col)
-		setfile(key, result.values()[0])
-	else:
-		result = handle.get(key)
+def GetKey(handle, key, col, download=True):
+	result = handle.get(key, col)
+	if download:
+		for content in result.values():
+			setfile(key, getfilecontent(content))
 	return result
 
 ###
@@ -165,8 +174,8 @@ def connectserver(address, key_space, column_family):
 ####################################################################################
 def helpmsg():
 	print "Usage: ./manager.py -h server -k keyspace -c columnfamily -i key column value"
-	print "       ./manager.py -h server -k keyspace -c columnfamily -I path"
+	print "       ./manager.py -h server -k keyspace -c columnfamily -I [path]"
 	print "       ./manager.py -h server -k keyspace -c columnfamily -d key [column]"
-	print "       ./manager.py -h server -k keyspace -c columnfamily -l key [column]"
+	print "       ./manager.py -h server -k keyspace -c columnfamily -l key column"
 	print "       ./manager.py -h server -k keyspace -c columnfamily -L [key]"
 	print "       ./manager.py -h server -k keyspace -c columnfamily -M [key_string] column_string"
