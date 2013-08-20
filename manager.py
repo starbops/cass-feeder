@@ -105,6 +105,14 @@ def DeleteKey(handle, key, col):
 	else:
 		handle.remove(key);
 		print "[INFO] Remove '" + key + "'."
+###
+# Write Content Into File
+####################################################################################
+def setfile(file_name, content):
+	try: os.makedirs(os.getcwd() + os.path.dirname(file_name))
+	except OSError as err: pass
+	with open(os.getcwd() + file_name, "w") as f:
+		f.write(content)
 
 ###
 # Return OrderedDict Of The Specified Key (Along With Column Name)
@@ -112,10 +120,10 @@ def DeleteKey(handle, key, col):
 def GetKey(handle, key, col):
 	if len(col) != 0:
 		result = handle.get(key, col)
-		return result
+		setfile(key, result.values()[0])
 	else:
 		result = handle.get(key)
-		return result
+	return result
 
 ###
 # Show The Number Of Total Rows / Show Column Names Of The Specified Key
@@ -135,10 +143,10 @@ def ListInfo(handle, key_list):
 ####################################################################################
 def ComplexGet(handle, key_list, col_list):
 	if len(key_list) == 0:
-		result = dict(handle.get_range(columns=col_list)).keys()
+		result = dict(handle.get_range(columns=col_list, buffer_size=1024)).keys()
 		for x in result: print x
 	else:
-		result = dict(handle.multiget(key_list, col_list))
+		result = dict(handle.multiget(key_list, col_list, buffer_size=1024))
 		for x in result.values(): print x.items()[0][1]
 	return result
 
