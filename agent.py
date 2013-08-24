@@ -27,7 +27,7 @@ def main():
 					ImportTree(cf, 'UUID', args[0])
 				else:
 					devinfo = uuidpth()
-					blklst = ['nicklistfifo', '/dev', '/run', '/var/lib/dpkg/info', '/sys/kernel/debug/hid']
+					blklst = ['/dev', '/run', '/var/lib/dpkg/info', '/sys/kernel/debug/hid']
 					for key in devinfo:
 						blklsttmp = [x for x in devinfo.values() if x != devinfo[key] if x != '/']
 						ImportTree(cf, key, devinfo[key], blklst + blklsttmp)
