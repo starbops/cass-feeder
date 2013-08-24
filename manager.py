@@ -17,7 +17,7 @@ SECMAP_SERVLST = ['192.168.100.103', '192.168.100.105',
                  '192.168.100.107', '192.168.100.111'
 ]
 
-def uuidpth():
+def uuidpath():
     """Return a dictionary about UUID & mount point."""
     bus = dbus.SystemBus()
     ud_manager_obj = bus.get_object("org.freedesktop.UDisks",
@@ -43,7 +43,7 @@ def uuidpth():
             uuidlst.append(iduuid)
     return dict(zip(uuidlst, mntpthlst))
 
-def InsertKey(handle, key, col_val_list):
+def insert_key(handle, key, col_val_list):
     """Insert key with column name and column value."""
     col_val_list = iter(col_val_list)
     for col, val in zip(col_val_list, col_val_list):
@@ -73,7 +73,7 @@ def inblacklist(nm, blklst):
             return True
     return False
 
-def ImportTree(h, devuuid, pth, blklst=[]):
+def import_tree(h, devuuid, pth, blklst=[]):
     """Insert keys from a given point recursively (UUID)."""
     for drnm, sbdrnms, flnms in os.walk(pth):
         print "[INFO] Entering '" + drnm + "'."
@@ -88,12 +88,12 @@ def ImportTree(h, devuuid, pth, blklst=[]):
                     hashstr = hashfile(flnmabs,
                                        [hashlib.md5(), hashlib.sha1()],
                                        os.path.getsize(flnmabs))
-                    InsertKey(h, flnmabs, [devuuid, hashstr])
+                    insert_key(h, flnmabs, [devuuid, hashstr])
                 except Exception as err:
                     print "[ERROR] " + str(err) + "."
     print "[INFO] Importation done."
 
-def DeleteKey(handle, key, col):
+def delete_key(handle, key, col):
     """Delete whole row or multiple columns."""
     if len(col) != 0:
         handle.remove(key, col);
@@ -102,23 +102,23 @@ def DeleteKey(handle, key, col):
         handle.remove(key);
         print "[INFO] Remove '" + key + "'."
 
-def getfilecontent(taskid):
+def get_content(taskid):
     """Get file content from other cassandra servers."""
     result = ""
     try:
-        (p, c) = connectserver(SECMAP_SERVLST, 'SECMAP', 'SUMMARY')
+        (p, c) = connect_server(SECMAP_SERVLST, 'SECMAP', 'SUMMARY')
     except Exception as err:
         print "[ERROR] " + str(err) + "\n[ERROR] Connection aborted."
     else:
         try:
-            content = GetKey(c, taskid, ['content'], False)
+            content = get_key(c, taskid, ['content'], False)
             result = content.values()[0]
         except pycassa.NotFoundException as err:
             print "[ERROR] " + str(err) + "."
         p.dispose()
     return result
 
-def setfile(file_name, content):
+def set_file(file_name, content):
     """Write content into file."""
     try:
         os.makedirs(os.getcwd() + os.path.dirname(file_name))
@@ -135,15 +135,15 @@ def setfile(file_name, content):
         new_file_name = full_file_name + ".exe"
     os.system("mv " + full_file_name + " " + new_file_name)
 
-def GetKey(handle, key, col, download=True):
+def get_key(handle, key, col, download=True):
     """Return OrderedDict of the specified key (along with column name)."""
     result = handle.get(key, col)
     if download:
         for content in result.values():
-            setfile(key, getfilecontent(content))
+            set_file(key, get_content(content))
     return result
 
-def ListInfo(handle, key_list):
+def list_info(handle, key_list):
     """Show the number of total rows/show column names of the specified key."""
     if len(key_list) == 0:
         result = dict(handle.get_range(column_count=0,
@@ -151,11 +151,11 @@ def ListInfo(handle, key_list):
         print "Total", len(result), "row(s)."
         #return result
     else:
-        result_col = GetKey(handle, key_list[0], '').keys()
+        result_col = get_key(handle, key_list[0], '').keys()
         print "'" + key_list[0] + "' has " + str(result_col) + " column(s)."
         return result_col
 
-def ComplexGet(handle, key_list, col_list):
+def complex_get(handle, key_list, col_list):
     """Return keys given columns."""
     if len(key_list) == 0:
         result = dict(handle.get_range(columns=col_list,
@@ -169,7 +169,7 @@ def ComplexGet(handle, key_list, col_list):
             print x.items()[0][1]
     return result
 
-def connectserver(address, key_space, column_family):
+def connect_server(address, key_space, column_family):
     """Establish connection."""
     pool = ConnectionPool(key_space, address)
     print "[INFO] Connection to '" + key_space + "' established."

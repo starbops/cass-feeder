@@ -15,7 +15,7 @@ def main():
         in_keyspace = opts[1][1]
         in_columnfamily = opts[2][1]
         try:
-            pool, cf = connectserver([in_server], in_keyspace,
+            pool, cf = connect_server([in_server], in_keyspace,
                                      in_columnfamily)
         except Exception as err:
             print "[ERROR] " + str(err) + "\n[ERROR] Connection aborted."
@@ -23,14 +23,14 @@ def main():
             (o, a) = opts[3]
             if o == '-i':
                 if a != '' and len(args) == 2:
-                    InsertKey(cf, a, args)
+                    insert_key(cf, a, args)
                 else:
                     helpmsg()
             elif o == '-I':
                 if len(args) == 1:
-                    ImportTree(cf, 'UUID', args[0])
+                    import_tree(cf, 'UUID', args[0])
                 else:
-                    devinfo = uuidpth()
+                    devinfo = uuidpath()
                     blklst = ['/dev', '/run', '/var/lib/dpkg/info',
                               '/sys/kernel/debug/hid'
                     ]
@@ -39,17 +39,17 @@ def main():
                                            if x != devinfo[key]
                                            if x != '/'
                         ]
-                        ImportTree(cf, key, devinfo[key],
+                        import_tree(cf, key, devinfo[key],
                                    blklst + blklsttmp)
             elif o == '-d':
                 if a != '':
-                    DeleteKey(cf, a, args)
+                    delete_key(cf, a, args)
                 else:
                     helpmsg()
             elif o == '-l':
                 if a != '':
                     try:
-                        result = GetKey(cf, a, args)
+                        result = get_key(cf, a, args)
                         print "'" + a + "' has " + str(result) + "."
                     except pycassa.NotFoundException as err:
                         print "[ERROR] " + str(err)
@@ -58,7 +58,7 @@ def main():
                     helpmsg()
             elif o == '-L':
                 try:
-                    ListInfo(cf, args)
+                    list_info(cf, args)
                 except pycassa.NotFoundException as err:
                     print "[ERROR] " + str(err) + "\n[ERROR] Action aborted."
             elif o == '-M':
@@ -68,7 +68,7 @@ def main():
                     if len(kl) == 0 and len(cl) == 0:
                         helpmsg()
                     else:
-                        try: ComplexGet(cf, kl, cl)
+                        try: complex_get(cf, kl, cl)
                         except Exception as err:
                             print "[ERROR] " + str(err) + "."
                 elif len(args) == 1:
@@ -77,7 +77,7 @@ def main():
                         helpmsg()
                     else:
                         try:
-                            ComplexGet(cf, [], cl)
+                            complex_get(cf, [], cl)
                         except Exception as err:
                             print "[ERROR] " + str(err) + "."
                 else:
