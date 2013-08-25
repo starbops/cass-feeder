@@ -2,6 +2,12 @@
 
 Parse them! Hash them! Eat them! Cassandra is hungry!
 
+## Environment
+
+- Ubuntu 12.04 LTS
+- Cassandra 1.0.12
+- Pycassa 1.9.1
+
 ## Usage
 
 ### setup.py

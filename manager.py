@@ -125,7 +125,7 @@ def set_file(file_name, content):
     except OSError as err:
         print "[ERROR] " + str(err) + "."
     full_file_name = os.getcwd() + file_name
-    with open(full_file_name, "w") as f:
+    with open(full_file_name, 'w') as f:
         f.write(content)
 
     if re.match(r".*DLL.*",
