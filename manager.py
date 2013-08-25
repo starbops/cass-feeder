@@ -137,7 +137,10 @@ def set_file(file_name, content):
 
 def get_key(handle, key, col, download=True):
     """Return OrderedDict of the specified key (along with column name)."""
-    result = handle.get(key, col)
+    if not col:
+        result = handle.get(key)
+    else:
+        result = handle.get(key, col)
     if download:
         for content in result.values():
             set_file(key, get_content(content))
