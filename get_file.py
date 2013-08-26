@@ -2,6 +2,7 @@
 # file: get_content.py
 
 import os
+import re
 import sys
 
 import pycassa
@@ -21,7 +22,7 @@ def get_values(servlst, ks, cf, key):
         result = cf_handle.get(key).values()
     except pycassa.NotFoundException as err:
         print "[ERROR] " + key + " not found"
-        exit(-1)
+        exit(-2)
     except Exception as err:
         print "[ERROR] " + str(err)
         exit(-1)
@@ -31,10 +32,13 @@ def get_values(servlst, ks, cf, key):
     return result
 
 def set_file(filename, file_content):
-    full_filename = os.getcwd() + filename
+    full_filename = os.getcwd() + re.sub(r"^([a-zA-Z]):(.*)",
+                                         r"\\\1\2",
+                                         filename.replace("/", "\\"))
     full_filepath = os.path.dirname(full_filename)
 
     try:
+        print full_filepath
         os.makedirs(full_filepath)
     except OSError as err:
         print "[WARN] " + str(err)
@@ -61,7 +65,7 @@ def main():
         print usage()
         exit(-1)
 
-    taskid_list = get_values(serverlist, keyspace,
+    taskid_list = get_values([serverlist], keyspace,
                              columnfamily, target_filename)
     for taskid in taskid_list:
         print taskid
@@ -73,3 +77,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
