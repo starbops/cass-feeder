@@ -7,6 +7,7 @@ Parse them! Hash them! Eat them! Cassandra is hungry!
 - Ubuntu 12.04 LTS
 - Cassandra 1.0.12
 - Pycassa 1.9.1
+- Regparser
 
 ## Usage
 
@@ -27,6 +28,14 @@ Usage: ./agent.py -h server -k keyspace -c columnfamily -i key column value
        ./agent.py -h server -k keyspace -c columnfamily -L [key]
        ./agent.py -h server -k keyspace -c columnfamily -M [key_string] column_string
 ```
+
+### get\_file.py
+
+```
+Usage: python get_file.py serv keyspace col_fam key
+```
+
+### from\_candidate\_get\_file.py
 
 ## Features
 
