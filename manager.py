@@ -50,13 +50,13 @@ def insert_key(handle, key, col_val_list):
         handle.insert(key, {col: val})
         print "[INFO] Key '" + key + "' inserted."
 
-def hashfile(file_name, hasherlst, file_size, blocksize=65536):
+def hashfile(filename, hasherlst, file_size, blocksize=65536):
     """Generate a string containing md5, sha1, and file size."""
-    print "[INFO] Hashing file '" + file_name + "'."
+    print "[INFO] Hashing file '" + filename + "'."
     if file_size == 0:
         [hasher.update('') for hasher in hasherlst]
     else:
-        with open(file_name, 'rb') as afile:
+        with open(filename, 'rb') as afile:
             buf = afile.read(blocksize)
             while buf:
                 [hasher.update(buf) for hasher in hasherlst]
@@ -118,22 +118,22 @@ def get_content(taskid):
         p.dispose()
     return result
 
-def set_file(file_name, content):
+def set_file(filename, content):
     """Write content into file."""
     try:
-        os.makedirs(os.getcwd() + os.path.dirname(file_name))
+        os.makedirs(os.getcwd() + os.path.dirname(filename))
     except OSError as err:
         print "[ERROR] " + str(err) + "."
-    full_file_name = os.getcwd() + file_name
-    with open(full_file_name, 'w') as f:
+    full_filename = os.getcwd() + filename
+    with open(full_filename, 'w') as f:
         f.write(content)
 
     if re.match(r".*DLL.*",
-            subp.check_output(['file', full_file_name])):
-        new_file_name = full_file_name + ".dll"
+            subp.check_output(['file', full_filename])):
+        new_filename = full_filename + ".dll"
     else:
-        new_file_name = full_file_name + ".exe"
-    os.system("mv " + full_file_name + " " + new_file_name)
+        new_filename = full_filename + ".exe"
+    os.system("mv " + full_filename + " " + new_filename)
 
 def get_key(handle, key, col, download=True):
     """Return OrderedDict of the specified key (along with column name)."""
@@ -142,9 +142,9 @@ def get_key(handle, key, col, download=True):
     else:
         result = handle.get(key, col)
     if download:
-        for content in result.values():
-            set_file(key, get_content(content))
-    return result
+        for taskid in result.values():
+            set_file(key, get_content(taskid))
+    return result.values()
 
 def list_info(handle, key_list):
     """Show the number of total rows/show column names of the specified key."""
