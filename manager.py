@@ -112,7 +112,7 @@ def get_content(taskid):
     else:
         try:
             content = get_key(c, taskid, ['content'], False)
-            result = content.values()[0]
+            result = content[0]
         except pycassa.NotFoundException as err:
             print "[ERROR] " + str(err) + "."
         p.dispose()
