@@ -2,7 +2,6 @@
 # file: manager.py
 
 import dbus
-import getopt
 import hashlib
 import os
 import re
