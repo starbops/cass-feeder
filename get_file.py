@@ -22,7 +22,7 @@ def get_values(servlst, ks, cf, key):
         result = cf_handle.get(key).values()
     except pycassa.NotFoundException as err:
         print "[ERROR] " + key + " not found"
-        exit(-2)
+        result = ""
     except Exception as err:
         print "[ERROR] " + str(err)
         exit(-1)
@@ -38,7 +38,6 @@ def set_file(filename, file_content):
     full_filepath = os.path.dirname(full_filename)
 
     try:
-        print full_filepath
         os.makedirs(full_filepath)
     except OSError as err:
         print "[WARN] " + str(err)
@@ -55,26 +54,21 @@ def set_file(filename, file_content):
 def usage():
     return "Usage:\npython %s <serv> <keyspace> <col_fam> <key>" % sys.argv[0]
 
-def main():
-    try:
-        serverlist = sys.argv[1]
-        keyspace = sys.argv[2]
-        columnfamily = sys.argv[3]
-        target_filename = sys.argv[4]
-    except IndexError as err:
-        print usage()
-        exit(-1)
-
-    taskid_list = get_values([serverlist], keyspace,
+def get_file(serverlist,
+             keyspace,
+             columnfamily,
+             target_filename):
+    taskid_list = get_values(serverlist.split(), keyspace,
                              columnfamily, target_filename)
-    for taskid in taskid_list:
-        print taskid
-        content_list = get_values(SERVERLIST, KEYSPACE, COLUMNFAMILY, taskid)
+    if taskid_list:
+        for taskid in taskid_list:
+            print taskid
+            content_list = get_values(SERVERLIST, KEYSPACE,
+                                      COLUMNFAMILY, taskid)
 
-    content = content_list[0]
-    file_location = set_file(target_filename, content)
-    print file_location
-
-if __name__ == '__main__':
-    main()
+        content = content_list[0]
+        file_location = set_file(target_filename, content)
+    else:
+        file_location = ""
+    return file_location
 

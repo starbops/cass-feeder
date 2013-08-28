@@ -3,6 +3,9 @@
 import os
 import re
 import subprocess as subp
+import sys
+
+import get_file
 
 def get_path():
     path_cmd_list = ['python', 'regparser.py', 'system',
@@ -24,7 +27,10 @@ def get_path():
     return path_candidate_list
 
 def get_candidate_list(filename):
-    if re.match("^\.\.", filename):
+    if filename.startswith('/'):
+        print "[ERROR] Invalid file name"
+        candidate_list = []
+    elif re.match("^\.\.", filename):
         candidate_list = [os.path.abspath(filename)]
     elif re.match("^[a-zA-Z]:", filename):
         candidate_list = [os.path.abspath(filename)]
@@ -32,25 +38,27 @@ def get_candidate_list(filename):
         candidate_list = [os.path.join(path, filename) for path in get_path()]
     return candidate_list
 
+def usage():
+    return "Usage:\npython %s <serv> <keyspace> <col_fam> <target>" % sys.argv[0]
+
 def main():
-    #a = "..\\bonobo.dll"
-    #b = "D:\\WIDOW\\bonobo.txt"
-    c = "E:\\lala\\haha"
+    try:
+        serverlist = sys.argv[1]
+        keyspace = sys.argv[2]
+        columnfamily = sys.argv[3]
+        query_filename = sys.argv[4]
+    except IndexError as err:
+        print usage()
+        exit(-1)
+
     prefix_list = get_path()
-    print prefix_list
-    #get_candidate_list(a)
-    #get_candidate_list(b)
-    for i in get_candidate_list(c):
-        try:
-            subp.check_output(['python', 'get_file.py', '140.113.121.170', 'ks', 'cf', i])
-        except subp.CalledProcessError as err:
-            print "[ERROR] " + str(err)
-            if err.returncode == -2:
-                continue
-            else:
-                break
-        else:
-            print "file downloaded"
+
+    for candidate in get_candidate_list(query_filename):
+        location = get_file.get_file(serverlist, keyspace,
+                                     columnfamily, candidate)
+        if location:
+            print location
 
 if __name__ == '__main__':
     main()
+
