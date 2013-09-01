@@ -10,7 +10,7 @@ from pycassa.columnfamily import ColumnFamily
 
 F_SERVLIST = ["140.113.121.170"]
 F_KS = "ks"
-F_CF = "f"
+F_CF = "cf"
 B_SERVLIST = ["192.168.100.103", "192.168.100.105",
               "192.168.100.107", "192.168.100.111"
 ]
@@ -32,10 +32,19 @@ def gen_taskid(hasherlist, filename, file_content):
     return hash_str + str(os.path.getsize(filename))
 
 def feeder(filename, device_uuid, taskid, file_content):
-    frontend['pool'] = ConnectionPool(F_KS, F_SERVLIST)
-    frontend['handle'] = ColumnFamily(f_pool, F_CF)
-    backend['pool'] = ConnectionPool(B_KS, B_SERVLIST)
-    backend['handle'] = ColumnFamily(b_pool, B_CF)
+    frontend = {}
+    backend = {}
+    try:
+        frontend['pool'] = ConnectionPool(F_KS, F_SERVLIST)
+        frontend['handle'] = ColumnFamily(frontend['pool'], F_CF)
+        backend['pool'] = ConnectionPool(B_KS, B_SERVLIST)
+        backend['handle'] = ColumnFamily(backend['pool'], B_CF)
+    except pycassa.NotFoundException as err:
+        print "[ERROR] " + str(err)
+        exit(-1)
+    except pycassa.AllServersUnavailable as err:
+        print "[ERROR] " + str(err)
+        exit(-1)
 
     frontend['handle'].insert(filename, {device_uuid: taskid})
     backend['handle'].insert(taskid, {'content': file_content})
