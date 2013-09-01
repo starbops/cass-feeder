@@ -46,8 +46,11 @@ def feeder(filename, device_uuid, taskid, file_content):
         print "[ERROR] " + str(err)
         exit(-1)
 
+    print filename
     frontend['handle'].insert(filename, {device_uuid: taskid})
+    print taskid
     backend['handle'].insert(taskid, {'content': file_content})
+    print "Uploaded\n"
 
     frontend['pool'].dispose()
     backend['pool'].dispose()
