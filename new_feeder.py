@@ -11,6 +11,7 @@ import pycassa
 from pycassa.pool import ConnectionPool
 from pycassa.columnfamily import ColumnFamily
 
+PREFIX = "/mnt"
 F_SERVLIST = ["140.113.121.170"]
 F_KS = "ks"
 F_CF = "cf"
@@ -34,12 +35,12 @@ def get_uuid_mntpoint():
     for dev in ud_manager.EnumerateDevices():
         device_obj = bus.get_object("org.freedesktop.UDisks", dev)
         device_props = dbus.Interface(device_obj, dbus.PROPERTIES_IFACE)
-        mntpoint_list = str(device_props.Get('org.freedesktop.UDisks.Device',
+        mntpoint = str(device_props.Get('org.freedesktop.UDisks.Device',
                                       "DeviceMountPaths"))
         iduuid = str(device_props.Get('org.freedesktop.UDisks.Device',
                                       "IdUuid"))
         try:
-            mntpoint_list.append(re.search('.*\'(/.*?)\'.*', mntpoint_list).group(1))
+            mntpoint_list.append(re.search('.*\'(/.*?)\'.*', mntpoint).group(1))
         except AttributeError:
             continue
 
@@ -86,14 +87,14 @@ def feeder(filename, device_uuid, taskid, file_content):
 
 def main():
     try:
-        start_point_list = dict{'UUID': sys.argv[1]}
+        start_point_list = {'UUID': sys.argv[1]}
     except IndexError as err:
         start_point_list = get_uuid_mntpoint()
         #print "[ERROR] " + str(err)
         #exit(-1)
 
     for sp in start_point_list:
-        if not start_point_list[sp].startswith('/mnt'):
+        if not start_point_list[sp].startswith(PREFIX):
             continue
         filelist = get_filelist(start_point_list[sp])
         if not filelist:
@@ -108,10 +109,11 @@ def main():
 
             hasherlist = [hashlib.md5(), hashlib.sha1()]
             taskid = gen_taskid(hasherlist, filename, file_content)
-            #feeder(filename, 'UUID', taskid, file_content)
+            print sp
+            feeder(filename, sp, taskid, file_content)
             counter += 1
 
-        print "Total " + counter + " file(s) uploaded."
+        print "Total " + str(counter) + " file(s) uploaded."
 
 if __name__ == "__main__":
     main()
