@@ -1,7 +1,10 @@
 #!/usr/bin/env python
+# file: feeder.py
 
 import hashlib
+import dbus
 import os
+import re
 import sys
 
 import pycassa
@@ -17,6 +20,32 @@ B_SERVLIST = ["192.168.100.103", "192.168.100.105",
 B_KS = "SECMAP"
 B_CF = "SUMMARY"
 BLOCKSIZE = 65536
+
+def get_uuid_mntpoint():
+    """Return a dictionary about UUID & mount point."""
+    bus = dbus.SystemBus()
+    ud_manager_obj = bus.get_object("org.freedesktop.UDisks",
+                                    "/org/freedesktop/UDisks")
+    ud_manager = dbus.Interface(ud_manager_obj,
+                                'org.freedesktop.UDisks')
+    uuid_list = []
+    mntpoint_list = []
+
+    for dev in ud_manager.EnumerateDevices():
+        device_obj = bus.get_object("org.freedesktop.UDisks", dev)
+        device_props = dbus.Interface(device_obj, dbus.PROPERTIES_IFACE)
+        mntpoint_list = str(device_props.Get('org.freedesktop.UDisks.Device',
+                                      "DeviceMountPaths"))
+        iduuid = str(device_props.Get('org.freedesktop.UDisks.Device',
+                                      "IdUuid"))
+        try:
+            mntpoint_list.append(re.search('.*\'(/.*?)\'.*', mntpoint_list).group(1))
+        except AttributeError:
+            continue
+
+        if iduuid != '':
+            uuid_list.append(iduuid)
+    return dict(zip(uuid_list, mntpoint_list))
 
 def get_filelist(root):
     filelist = []
@@ -57,24 +86,32 @@ def feeder(filename, device_uuid, taskid, file_content):
 
 def main():
     try:
-        start_point = sys.argv[1]
+        start_point_list = dict{'UUID': sys.argv[1]}
     except IndexError as err:
-        print "[ERROR] " + str(err)
-        exit(-1)
+        start_point_list = get_uuid_mntpoint()
+        #print "[ERROR] " + str(err)
+        #exit(-1)
 
-    filelist = get_filelist(start_point)
-    if not filelist:
-        print "[WARN] No files were found"
-        exit(-1)
+    for sp in start_point_list:
+        if not start_point_list[sp].startswith('/mnt'):
+            continue
+        filelist = get_filelist(start_point_list[sp])
+        if not filelist:
+            print "[WARN] No files were found"
+            exit(-1)
 
-    for filename in filelist:
-        file_content = ""
-        with open(filename, "rb") as f:
-            file_content = f.read(BLOCKSIZE)
+        counter = 0
+        for filename in filelist:
+            file_content = ""
+            with open(filename, "rb") as f:
+                file_content = f.read(BLOCKSIZE)
 
-        hasherlist = [hashlib.md5(), hashlib.sha1()]
-        taskid = gen_taskid(hasherlist, filename, file_content)
-        feeder(filename, 'UUID', taskid, file_content)
+            hasherlist = [hashlib.md5(), hashlib.sha1()]
+            taskid = gen_taskid(hasherlist, filename, file_content)
+            #feeder(filename, 'UUID', taskid, file_content)
+            counter += 1
+
+        print "Total " + counter + " file(s) uploaded."
 
 if __name__ == "__main__":
     main()
