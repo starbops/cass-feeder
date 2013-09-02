@@ -31,7 +31,7 @@ def get_values(servlst, ks, cf, key):
 
     return result
 
-def set_file(filename, file_content):
+def write_file(filename, file_content):
     full_filename = os.getcwd() + re.sub(r"^([a-zA-Z]):(.*)",
                                          r"\\\1\2",
                                          filename.replace("/", "\\"))
@@ -67,7 +67,7 @@ def get_file(serverlist,
                                       COLUMNFAMILY, taskid)
 
         content = content_list[0]
-        file_location = set_file(target_filename, content)
+        file_location = write_file(target_filename, content)
     else:
         file_location = ""
     return file_location

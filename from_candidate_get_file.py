@@ -7,29 +7,32 @@ import sys
 
 import get_file
 
+PATH_CMD_LIST = ['python', 'regparser.py', 'system',
+                 'ControlSet001\Control\Session Manager\Environment',
+                 'Path'
+]
+SYSROOT_CMD_LIST = ['python', 'regparser.py', 'software',
+                    'Microsoft\Windows NT\CurrentVersion',
+                    'SystemRoot'
+]
+
 def get_path():
-    path_cmd_list = ['python', 'regparser.py', 'system',
-                     'ControlSet001\Control\Session Manager\Environment',
-                     'Path'
-    ]
-    sysroot_cmd_list = ['python', 'regparser.py', 'software',
-                        'Microsoft\Windows NT\CurrentVersion',
-                        'SystemRoot'
-    ]
 
     try:
-        path_result = subp.check_output(path_cmd_list).rstrip('\r\n')
-        sysroot_result = subp.check_output(sysroot_cmd_list).rstrip('\r\n')
+        path_result = subp.check_output(PATH_CMD_LIST).rstrip('\r\n')
+        sysroot_result = subp.check_output(SYSROOT_CMD_LIST).rstrip('\r\n')
     except subp.CalledProcessError as err:
+        path_result = ""
+        sysroot_result = ""
         print err.returncode
-        exit(-1)
+        #exit(-1)
     path_candidate_list = path_result.replace('%SystemRoot%', sysroot_result).split(';')
     return path_candidate_list
 
 def get_candidate_list(filename):
     if filename.startswith('/'):
         print "[ERROR] Invalid file name"
-        candidate_list = []
+        candidate_list = [filename]
     elif re.match("^\.\.", filename):
         candidate_list = [os.path.abspath(filename)]
     elif re.match("^[a-zA-Z]:", filename):
