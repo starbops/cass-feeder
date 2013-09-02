@@ -9,13 +9,15 @@ import pycassa
 from pycassa.pool import ConnectionPool
 from pycassa.columnfamily import ColumnFamily
 
+D_PREFIX = "/mnt"
 SERVERLIST = ['192.168.100.103', '192.168.100.105',
             '192.168.100.107', '192.168.100.111'
 ]
 KEYSPACE = 'SECMAP'
-COLUMNFAMILY = 'SUMMARY'
+COLUMNFAMILY = 'SUMMARY_TEST'
 
 def get_values(servlst, ks, cf, key):
+    #print key
     try:
         pool = ConnectionPool(ks, servlst)
         cf_handle = ColumnFamily(pool, cf)
@@ -58,8 +60,9 @@ def get_file(serverlist,
              keyspace,
              columnfamily,
              target_filename):
+    fn = D_PREFIX + re.sub(r"^([a-zA-Z]):(.*)", r"/\1\2", target_filename.replace("\\", "/"))
     taskid_list = get_values(serverlist.split(), keyspace,
-                             columnfamily, target_filename)
+                             columnfamily, fn)
     if taskid_list:
         for taskid in taskid_list:
             print taskid
@@ -67,6 +70,7 @@ def get_file(serverlist,
                                       COLUMNFAMILY, taskid)
 
         content = content_list[0]
+        print target_filename
         file_location = write_file(target_filename, content)
     else:
         file_location = ""
