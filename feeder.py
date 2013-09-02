@@ -61,7 +61,49 @@ def gen_taskid(hasherlist, filename, file_content):
     hash_str = ''.join([hasher.hexdigest() for hasher in hasherlist])
     return hash_str + str(os.path.getsize(filename))
 
-def feeder(start_point_dict):
+#def feeder(start_point_dict):
+#    frontend = {}
+#    backend = {}
+#    try:
+#        frontend['pool'] = ConnectionPool(F_KS, F_SERVLIST)
+#        frontend['handle'] = ColumnFamily(frontend['pool'], F_CF)
+#        backend['pool'] = ConnectionPool(B_KS, B_SERVLIST)
+#        backend['handle'] = ColumnFamily(backend['pool'], B_CF)
+#    except pycassa.NotFoundException as err:
+#        print "[ERROR] " + str(err)
+#        exit(-1)
+#    except pycassa.AllServersUnavailable as err:
+#        print "[ERROR] " + str(err)
+#        exit(-1)
+#
+#    counter = 0
+#    for sp in start_point_dict:
+#        filelist = get_filelist(start_point_dict[sp])
+#        if not filelist:
+#            print "[WARN] No files were found."
+#            continue
+#
+#        for filename in filelist:
+#            if os.path.getsize(filename) > SIZE_LIMIT:
+#                continue
+#            file_content = ""
+#            with open(filename, "rb") as f:
+#                file_content = f.read()
+#
+#            hasherlist = [hashlib.md5(), hashlib.sha1()]
+#            taskid = gen_taskid(hasherlist, filename, file_content)
+#            print "%s\n%s\n%s" % (sp, filename, taskid)
+#            frontend['handle'].insert(filename, {sp: taskid})
+#            backend['handle'].insert(taskid, {'content': file_content})
+#            print "Uploaded\n"
+#            counter += 1
+#
+#    print "Total " + str(counter) + " file(s) uploaded."
+#
+#    frontend['pool'].dispose()
+#    backend['pool'].dispose()
+
+def new_feeder(start_point_dict):
     frontend = {}
     backend = {}
     try:
@@ -83,6 +125,9 @@ def feeder(start_point_dict):
             print "[WARN] No files were found."
             continue
 
+        frontend['batch'] = frontend['handle'].batch(queue_size=10)
+        backend['batch'] = backend['handle'].batch(queue_size=10)
+
         for filename in filelist:
             if os.path.getsize(filename) > SIZE_LIMIT:
                 continue
@@ -93,10 +138,14 @@ def feeder(start_point_dict):
             hasherlist = [hashlib.md5(), hashlib.sha1()]
             taskid = gen_taskid(hasherlist, filename, file_content)
             print "%s\n%s\n%s" % (sp, filename, taskid)
-            frontend['handle'].insert(filename, {sp: taskid})
-            backend['handle'].insert(taskid, {'content': file_content})
+            frontend['batch'].insert(filename, {sp: taskid})
+            backend['batch'].insert(taskid, {'content': file_content})
             print "Uploaded\n"
             counter += 1
+
+        frontend['batch'].send()
+        backend['batch'].send()
+        print "Truly uploaded"
 
     print "Total " + str(counter) + " file(s) uploaded."
 
@@ -113,7 +162,7 @@ def main():
                             if um[sp].startswith('/mnt')
         }
 
-    feeder(start_point_dict)
+    new_feeder(start_point_dict)
 
 if __name__ == "__main__":
     main()
