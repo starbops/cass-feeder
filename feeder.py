@@ -12,15 +12,15 @@ from pycassa.pool import ConnectionPool
 from pycassa.columnfamily import ColumnFamily
 
 PREFIX = "/mnt"
-F_SERVLIST = ["localhost"]
+SIZE_LIMIT = 500 * 1024 * 1024
+F_SERVLIST = ["192.168.6.135"]
 F_KS = "ks"
 F_CF = "cf"
 B_SERVLIST = ["192.168.100.103", "192.168.100.105",
               "192.168.100.107", "192.168.100.111"
 ]
 B_KS = "SECMAP"
-B_CF = "SUMMARY"
-BLOCKSIZE = 65536
+B_CF = "SUMMARY_TEST"
 
 def get_uuid_mntpoint():
     """Return a dictionary about UUID & mount point."""
@@ -61,7 +61,7 @@ def gen_taskid(hasherlist, filename, file_content):
     hash_str = ''.join([hasher.hexdigest() for hasher in hasherlist])
     return hash_str + str(os.path.getsize(filename))
 
-def feeder(start_point_list):
+def feeder(start_point_dict):
     frontend = {}
     backend = {}
     try:
@@ -77,16 +77,18 @@ def feeder(start_point_list):
         exit(-1)
 
     counter = 0
-    for sp in start_point_list:
-        filelist = get_filelist(start_point_list[sp])
+    for sp in start_point_dict:
+        filelist = get_filelist(start_point_dict[sp])
         if not filelist:
             print "[WARN] No files were found."
             continue
 
         for filename in filelist:
+            if os.path.getsize(filename) > SIZE_LIMIT:
+                continue
             file_content = ""
             with open(filename, "rb") as f:
-                file_content = f.read(BLOCKSIZE)
+                file_content = f.read()
 
             hasherlist = [hashlib.md5(), hashlib.sha1()]
             taskid = gen_taskid(hasherlist, filename, file_content)
@@ -103,14 +105,15 @@ def feeder(start_point_list):
 
 def main():
     try:
-        start_point_list = {'UUID': sys.argv[1]}
+        start_point_dict = {'UUID': sys.argv[1]}
     except IndexError as err:
-        start_point_list = [start_point
-                            for start_point in get_uuid_mntpoint()
-                            if start_point.startswith('/mnt')
-        ]
+        um = get_uuid_mntpoint()
+        start_point_dict = {sp: um[sp]
+                            for sp in um
+                            if um[sp].startswith('/mnt')
+        }
 
-    feeder(start_point_list)
+    feeder(start_point_dict)
 
 if __name__ == "__main__":
     main()
