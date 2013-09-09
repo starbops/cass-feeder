@@ -10,6 +10,7 @@ from pycassa.pool import ConnectionPool
 from pycassa.columnfamily import ColumnFamily
 
 D_PREFIX = "/mnt"
+D_FOLDER = os.path.join(os.getcwd(), "Hookdownload")
 SERVERLIST = ['192.168.100.103', '192.168.100.105',
             '192.168.100.107', '192.168.100.111'
 ]
@@ -34,9 +35,11 @@ def get_values(servlst, ks, cf, key):
     return result
 
 def write_file(filename, file_content):
-    full_filename = os.getcwd() + re.sub(r"^([a-zA-Z]):(.*)",
-                                         r"\\\1\2",
-                                         filename.replace("/", "\\"))
+    #full_filename = os.getcwd() + re.sub(r"^([a-zA-Z]):(.*)",
+    #                                     r"\\\1\2",
+    #                                     filename.replace("/", "\\"))
+    full_filename = os.path.join(D_FOLDER,
+                                 re.search('.*/(.*)', filename).group(1))
     full_filepath = os.path.dirname(full_filename)
 
     try:

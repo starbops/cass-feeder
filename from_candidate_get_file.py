@@ -54,6 +54,15 @@ def main():
         print usage()
         exit(-1)
 
+    test = os.path.join(D_FOLDER,
+                 re.search('.*\\\\(.*)', query_filename).group(1))
+    try:
+        with open(test):
+            pass
+    except IOError:
+        print "[WARN] File already exists. Skip."
+        exit(0)
+
     prefix_list = get_path()
 
     for candidate in get_candidate_list(query_filename):
