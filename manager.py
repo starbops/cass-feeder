@@ -112,7 +112,7 @@ def get_content(taskid):
     else:
         try:
             content = get_key(c, taskid, ['content'], False)
-            result = content.values()[0]
+            result = content[0]
         except pycassa.NotFoundException as err:
             print "[ERROR] " + str(err) + "."
         p.dispose()
@@ -120,7 +120,10 @@ def get_content(taskid):
 
 def set_file(filename, content):
     """Write content into file."""
+    filename = re.sub(r"^([a-zA-Z]):(.*)", r"\1\2", filename)
     try:
+        if os.name != 'nt':
+            filename = filename.replace("\\", "/")
         os.makedirs(os.getcwd() + os.path.dirname(filename))
     except OSError as err:
         print "[ERROR] " + str(err) + "."
