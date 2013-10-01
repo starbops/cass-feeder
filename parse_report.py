@@ -12,7 +12,10 @@ with open("report.log", "r") as inf:
     for record in reports:
         if not record:
             break
-        rowkey = re.findall(r"RowKey \([0-9]+\) ===> (.*)", record)
+        try:
+            rowkey = re.findall(r"RowKey \([0-9]+\) ===> (.*)", record)[0]
+        except IndexError as err:
+            continue
 
         file_tainted = re.findall(pattern_ft, record)
         if not file_tainted:
@@ -28,4 +31,4 @@ with open("report.log", "r") as inf:
             if re.search(r"_MBA_TMP_tainted_", reg_tainted[0]):
                 reg_keyword.append("_MBA_TMP_tainted_")
 
-        print rowkey[0], file_tainted_count, ' '.join(reg_keyword)
+        print rowkey, file_tainted_count, ' '.join(reg_keyword)
