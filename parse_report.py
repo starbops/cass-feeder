@@ -11,6 +11,12 @@ with open("report.log", "r") as inf:
     for record in reports:
         if not record:
             break
-        rowkey = re.findall(r"RowKey \([0-9]+\) ===> (.*)", record)[0]
+        rowkey = re.findall(r"RowKey \([0-9]+\) ===> (.*)", record)
         files_tainted = re.findall(pattern, record)
-        print rowkey, files_tainted[0].count('\n')
+        if not files_tainted:
+            try:
+                print rowkey[0], 0
+            except IndexError as err:
+                pass
+            continue
+        print rowkey[0], files_tainted[0].count('\n')
