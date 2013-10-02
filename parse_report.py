@@ -6,7 +6,7 @@ import re
 pattern_ft = re.compile(r"===== Files tainted =====\n(.*?)===== Is MBR tainted =====", re.DOTALL)
 pattern_rt = re.compile(r"===== Registry tainted =====\n(.*?)===== Process tainted =====", re.DOTALL)
 
-with open("report.log", "r") as inf:
+with open("report.log", "r") as inf, open("parsed_report.log", "w") as outf:
     raw_content = inf.read()
     reports = re.split("\n\n", raw_content)
     for record in reports:
@@ -31,4 +31,5 @@ with open("report.log", "r") as inf:
             if re.search(r"_MBA_TMP_tainted_", reg_tainted[0]):
                 reg_keyword.append("_MBA_TMP_tainted_")
 
-        print rowkey, file_tainted_count, ' '.join(reg_keyword)
+
+        outf.write(rowkey + ' ' + str(file_tainted_count) + ' ' + ' '.join(reg_keyword) + '\n')
