@@ -41,7 +41,7 @@ def get_path():
 
 def get_candidate_list(filename):
     with open("fcgf.log", "a") as outf:
-        outf.write(filename)
+        outf.write(filename + '\n')
 
     if filename.startswith('\\'):
         print "[ERROR] Invalid file name"
@@ -56,7 +56,7 @@ def get_candidate_list(filename):
         elif filename.isupper():
             filename_list = [filename, filename.lower()]
         else:
-            filename_list = [filename]
+            filename_list = [filename, filename.lower(), filename.upper()]
 
         candidate_list = list(filename_list)
         candidate_list.extend([os.path.join(path, fn)
