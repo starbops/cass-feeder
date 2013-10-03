@@ -16,6 +16,16 @@ SYSROOT_CMD_LIST = ['python', 'regparser.py', 'software',
                     'SystemRoot'
 ]
 
+def query_type(query):
+    if query.find('\\') != -1:
+        t = 0
+    else:
+        if re.match("^[a-zA-Z]:", query):
+            pass
+        elif re.match("^\.\.", query):
+            pass
+    return t
+
 def get_path():
 
     try:
@@ -30,15 +40,29 @@ def get_path():
     return path_candidate_list
 
 def get_candidate_list(filename):
-    if filename.startswith('/'):
+    with open("fcgf.log", "a") as outf:
+        outf.write(filename)
+
+    if filename.startswith('\\'):
         print "[ERROR] Invalid file name"
-        candidate_list = [filename]
+        #candidate_list = [filename]
     elif re.match("^\.\.", filename):
         candidate_list = [os.path.abspath(filename)]
     elif re.match("^[a-zA-Z]:", filename):
         candidate_list = [os.path.abspath(filename)]
     else:
-        candidate_list = [os.path.join(path, filename) for path in get_path()]
+        if filename.islower():
+            filename_list = [filename, filename.upper()]
+        elif filename.isupper():
+            filename_list = [filename, filename.lower()]
+        else:
+            filename_list = [filename]
+
+        candidate_list = list(filename_list)
+        candidate_list.extend([os.path.join(path, fn)
+                              for path in get_path()
+                              for fn in filename_list])
+
     return candidate_list
 
 def usage():
@@ -49,14 +73,12 @@ def main():
         serverlist = sys.argv[1]
         keyspace = sys.argv[2]
         columnfamily = sys.argv[3]
-        query_filename = sys.argv[4]
+        query = sys.argv[4]
     except IndexError as err:
         print usage()
         exit(-1)
 
-    prefix_list = get_path()
-
-    for candidate in get_candidate_list(query_filename):
+    for candidate in get_candidate_list(query):
         location = get_file.get_file(serverlist, keyspace,
                                      columnfamily, candidate)
         if location:

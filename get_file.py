@@ -10,6 +10,7 @@ from pycassa.pool import ConnectionPool
 from pycassa.columnfamily import ColumnFamily
 
 D_PREFIX = "/mnt"
+DOWNLOAD_FOLDER = os.path.join(os.getcwd(), "Hookdownload")
 SERVERLIST = ['192.168.100.103', '192.168.100.105',
             '192.168.100.107', '192.168.100.111'
 ]
@@ -40,12 +41,14 @@ def write_file(filename, file_content):
     full_filepath = os.path.dirname(full_filename)
 
     try:
-        os.makedirs(full_filepath)
+        #os.makedirs(full_filepath)
+        os.makedirs(DOWNLOAD_FOLDER)
     except OSError as err:
         print "[WARN] " + str(err)
 
     try:
-        with open(full_filename, 'wb') as file_handle:
+        #with open(full_filename, 'wb') as file_handle:
+        with open(os.path.join(DOWNLOAD_FOLDER, re.search(r".*\\(.*)", filename).group(1)), 'wb') as file_handle:
             file_handle.write(file_content)
     except IOError as err:
         print "[ERROR] " + str(err)
